@@ -1,3 +1,3 @@
 # Simple growable arrays for C++
 
-Only works with GCC and C++20
+Works with GCC and C++20
