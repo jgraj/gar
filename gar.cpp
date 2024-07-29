@@ -1,7 +1,7 @@
-/// version: 1
+/// version: 2
 
 #ifndef GAR_PANIC
-#define GAR_PANIC printf
+#define GAR_PANIC(...) std::printf(__VA_ARGS__); std::exit(1);
 #endif
 
 template <typename T>
