@@ -1,4 +1,4 @@
-/// version: 2
+/// version: 3
 
 #ifndef GAR_PANIC
 #define GAR_PANIC(...) std::printf(__VA_ARGS__); std::exit(1);
@@ -38,6 +38,12 @@ struct ar {
 	}
 
 	gar<T> to_gar();
+
+	ar<T> clone() {
+		ar<T> new_array = alloc(this->len);
+		memcpy(new_array.buf, this->buf, sizeof(T) * this->len);
+		return new_array;
+	}
 
 	ar<T> resize_clone(size_t new_len) {
 		ar<T> new_array = alloc(new_len);
@@ -110,6 +116,14 @@ struct gar {
 		this->len += 1;
 	}
 
+	T pop() {
+		if (this->len == 0) {
+			GAR_PANIC("%s: len is zero", __PRETTY_FUNCTION__);
+		}
+		this->len -= 1;
+		return this->buf[this->len];
+	}
+
 	void push_many(T* src_ptr, size_t count) {
 		size_t old_len = len;
 		this->len += count;
@@ -117,6 +131,14 @@ struct gar {
 			this->grow();
 		}
 		std::memcpy(&this->buf[old_len], src_ptr, sizeof(T) * count);
+	}
+
+	void join(ar<T> other) {
+		this->push_many(other.buf, other.len);
+	}
+
+	void join(gar<T> other) {
+		this->push_many(other.buf, other.len);
 	}
 
 	T remove_at(size_t index) {
