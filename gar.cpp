@@ -1,4 +1,4 @@
-/// version: 3
+/// version: 4
 
 #ifndef GAR_PANIC
 #define GAR_PANIC(...) std::printf(__VA_ARGS__); std::exit(1);
@@ -21,7 +21,7 @@ struct ar {
 	static ar<T> alloc(size_t len) {
 		ar<T> array;
 		array.len = len;
-		array.buf = (T*)malloc(sizeof(T) * len);
+		array.buf = (T*)std::malloc(sizeof(T) * len);
 		if (array.buf == nullptr) {
 			GAR_PANIC("%s: malloc failed (len:%zu)", __PRETTY_FUNCTION__, len);
 		}
@@ -41,14 +41,14 @@ struct ar {
 
 	ar<T> clone() {
 		ar<T> new_array = alloc(this->len);
-		memcpy(new_array.buf, this->buf, sizeof(T) * this->len);
+		std::memcpy(new_array.buf, this->buf, sizeof(T) * this->len);
 		return new_array;
 	}
 
 	ar<T> resize_clone(size_t new_len) {
 		ar<T> new_array = alloc(new_len);
 		if (this->len != 0) {
-			memcpy(new_array.buf, this->buf, sizeof(T) * this->len);
+			std::memcpy(new_array.buf, this->buf, sizeof(T) * this->len);
 		}
 		return new_array;
 	}
@@ -96,7 +96,7 @@ struct gar {
 	gar<T> clone() {
 		gar<T> new_array = alloc(this->cap);
 		new_array.len = this->len;
-		memcpy(new_array.buf, this->buf, sizeof(T) * this->len);
+		std::memcpy(new_array.buf, this->buf, sizeof(T) * this->len);
 		return new_array;
 	}
 
@@ -143,7 +143,7 @@ struct gar {
 
 	T remove_at(size_t index) {
 		if (index < 0 || index >= this->len) {
-			GAR_PANIC("%s: index %zu is out of bounds", __PRETTY_FUNCTION__, index);
+			GAR_PANIC("%s: index %zu is out of bounds (len:%zu)", __PRETTY_FUNCTION__, index, this->len);
 		}
 		T value = this->buf[index];
 		this->len -= 1;
@@ -152,6 +152,9 @@ struct gar {
 	}
 
 	void remove_many(size_t index, size_t count) {
+		if (index < 0 || index + count > this->len) {
+			GAR_PANIC("%s: index %zu+%zu is out of bounds (len:%zu)", __PRETTY_FUNCTION__, index, count, this->len);
+		}
 		std::memmove(&this->buf[index], &this->buf[index + count], sizeof(T) * (this->len - index - count));
 		this->len -= count;
 	}
