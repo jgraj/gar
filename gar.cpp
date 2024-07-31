@@ -1,4 +1,4 @@
-/// version: 4
+/// version: 5
 
 #ifndef GAR_PANIC
 #define GAR_PANIC(...) std::printf(__VA_ARGS__); std::exit(1);
@@ -19,6 +19,9 @@ struct ar {
 	}
 
 	static ar<T> alloc(size_t len) {
+		if (cap == 0) {
+			GAR_PANIC("%s: len is zero", __PRETTY_FUNCTION__);
+		}
 		ar<T> array;
 		array.len = len;
 		array.buf = (T*)std::malloc(sizeof(T) * len);
@@ -67,6 +70,9 @@ struct gar {
 	}
 
 	static gar<T> alloc(size_t cap) {
+		if (cap == 0) {
+			GAR_PANIC("%s: cap is zero", __PRETTY_FUNCTION__);
+		}
 		gar<T> array;
 		array.len = 0;
 		array.cap = cap;
@@ -142,7 +148,7 @@ struct gar {
 	}
 
 	T remove_at(size_t index) {
-		if (index < 0 || index >= this->len) {
+		if (index >= this->len) {
 			GAR_PANIC("%s: index %zu is out of bounds (len:%zu)", __PRETTY_FUNCTION__, index, this->len);
 		}
 		T value = this->buf[index];
@@ -152,7 +158,7 @@ struct gar {
 	}
 
 	void remove_many(size_t index, size_t count) {
-		if (index < 0 || index + count > this->len) {
+		if (index + count > this->len) {
 			GAR_PANIC("%s: index %zu+%zu is out of bounds (len:%zu)", __PRETTY_FUNCTION__, index, count, this->len);
 		}
 		std::memmove(&this->buf[index], &this->buf[index + count], sizeof(T) * (this->len - index - count));
