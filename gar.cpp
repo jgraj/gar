@@ -19,7 +19,7 @@ struct ar {
 	}
 
 	static ar<T> alloc(size_t len) {
-		if (cap == 0) {
+		if (len == 0) {
 			GAR_PANIC("%s: len is zero", __PRETTY_FUNCTION__);
 		}
 		ar<T> array;
