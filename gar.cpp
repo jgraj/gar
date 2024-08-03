@@ -1,4 +1,4 @@
-/// version: 5
+/// version: 6
 
 #ifndef GAR_PANIC
 #define GAR_PANIC(...) std::printf(__VA_ARGS__); std::exit(1);
@@ -15,6 +15,11 @@ struct ar {
 	ar(): buf(nullptr), len(0) {}
 
 	T& operator [] (size_t index) {
+#ifdef GAR_ABC
+		if (index >= this->len) {
+			GAR_PANIC("%s: index %zu is out of bounds (len:%zu)", __PRETTY_FUNCTION__, index, this->len);
+		}
+#endif
 		return this->buf[index];
 	}
 
@@ -66,6 +71,11 @@ struct gar {
 	gar(): buf(nullptr), len(0), cap(0) {}
 
 	T& operator [] (size_t index) {
+#ifdef GAR_ABC
+		if (index >= this->len) {
+			GAR_PANIC("%s: index %zu is out of bounds (len:%zu)", __PRETTY_FUNCTION__, index, this->len);
+		}
+#endif
 		return this->buf[index];
 	}
 
