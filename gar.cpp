@@ -1,4 +1,4 @@
-/// version: 6
+/// version: 7
 
 #ifndef GAR_PANIC
 #define GAR_PANIC(...) std::printf(__VA_ARGS__); std::exit(1);
@@ -163,11 +163,14 @@ struct gar {
 		}
 		T value = this->buf[index];
 		this->len -= 1;
-		std::memmove(&this->buf[index], &this->buf[index + 1], sizeof(T) * this->len);
+		std::memmove(&this->buf[index], &this->buf[index + 1], sizeof(T) * (this->len - index));
 		return value;
 	}
 
 	void remove_many(size_t index, size_t count) {
+		if (count == 0) {
+			GAR_PANIC("%s: count is zero", __PRETTY_FUNCTION__);
+		}
 		if (index + count > this->len) {
 			GAR_PANIC("%s: index %zu+%zu is out of bounds (len:%zu)", __PRETTY_FUNCTION__, index, count, this->len);
 		}
