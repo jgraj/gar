@@ -12,7 +12,7 @@ struct Thread {
 #endif
 	bool exists = false;
 
-	void create(void (*func)(void*), void* arg);
+	template <typename T> void create(void (*func)(T*), T* arg);
 	void join();
 	bool try_join();
 	void detach();
@@ -26,12 +26,13 @@ DWORD WINAPI bootstrap(LPVOID param) {
 	return 0;
 }
 
-void Thread::create(void (*func)(void*), void* arg) {
-	Thread::Arg* thread_arg = alloc<Thread::Arg>(Thread::Arg(func, arg));
+template <typename T> Thread::create(void (*func)(T*), T* arg) {
+	this->exists = true;
+	Thread::Arg* thread_arg = alloc<Thread::Arg>(Thread::Arg((void (*)(void*))func, (void*)arg));
 	Thread thread;
 	this->handle = ::CreateThread(nullptr, 0, bootstrap, thread_arg, 0, nullptr);
 	if (this->handle == nullptr) {
-		CTK_PANIC("CreateThread failed");
+		this->exists = false;
 	}
 }
 
@@ -74,12 +75,11 @@ void* bootstrap(void* param) {
 	return nullptr;
 }
 
-void Thread::create(void (*func)(void*), void* arg) {
-	Thread::Arg* thread_arg = alloc<Thread::Arg>(Thread::Arg(func, arg));
+template <typename T> void Thread::create(void (*func)(T*), T* arg) {
+	this->exists = true;
+	Thread::Arg* thread_arg = alloc<Thread::Arg>(Thread::Arg((void (*)(void*))func, (void*)arg));
 	int pthread_create_ret = ::pthread_create(&this->id, nullptr, bootstrap, thread_arg);
-	if (pthread_create_ret == 0) {
-		this->exists = true;
-	} else {
+	if (pthread_create_ret != 0) {
 		this->exists = false;
 	}
 }
