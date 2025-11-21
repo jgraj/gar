@@ -1,167 +1,221 @@
-template <typename T> struct gar {
-	T* buf = nullptr;
-	size_t len = 0;
-	size_t cap = 0;
-
-	static gar<T> create(size_t cap) {
-		gar<T> array;
-		array.len = 0;
-		array.cap = cap;
-		if (cap == 0) {
-			array.buf = nullptr;
-		} else {
-			array.buf = (T*)std::malloc(sizeof(T) * cap);
-			if (array.buf == nullptr) {
-				CTK_PANIC("std::malloc failed (cap:%zu)", cap);
-			}
-		}
-		return array;
-	}
-
-	static gar<T> create_auto() {
-		return gar<T>::create(8);
-	}
-
-	void destroy() {
-		std::free(this->buf);
-		this->buf = nullptr;
-	}
-
-	void bound_check(size_t index) const {
-		if (index >= this->len) {
-			CTK_PANIC("index %zu is out of bounds (len:%zu)", index, this->len);
+template <typename Type>
+void gar<Type>::create_cap(this auto& self, size_t cap) {
+	self.len = 0;
+	self.cap = cap;
+	if (cap == 0) {
+		self.buf = nullptr;
+	} else {
+		self.buf = (Type*)ctk::mem_alloc(sizeof(Type) * cap);
+		if (self.buf == nullptr) {
+			ctk::panic("ctk::gar::create_cap failed: ctk::mem_alloc failed (cap:%zu)", cap);
 		}
 	}
+}
 
-	operator gar<const T>() const {
-		return gar<const T>{ buf, len, cap };
-	}
+template <typename Type>
+void gar<Type>::create_len(this auto& self, size_t len) {
+	self.create_cap(len);
+	self.len = len;
+}
 
-	const T& operator[] (size_t index) const {
-		#ifdef CTK_ABC
-			bound_check(index);
-		#endif
-		return this->buf[index];
-	}
+template <typename Type>
+void gar<Type>::create_auto(this auto& self) {
+	self.create_cap(8);
+}
 
-	template <typename U = T> std::enable_if_t<!std::is_const_v<U>, U&> operator[] (size_t index) {
-		#ifdef CTK_ABC
-			bound_check(index);
-		#endif
-		return this->buf[index];
-	}
+template <typename Type>
+void gar<Type>::destroy(this auto& self) {
+	ctk::mem_free(self.buf);
+	self.buf = nullptr;
+}
 
-	void clear() {
-		len = 0;
+template <typename Type>
+void gar<Type>::bound_check(this const auto& self, size_t index) {
+	if (index >= self.len) {
+		ctk::panic("ctk::gar::bound_check failed: index %zu is out of bounds (len:%zu)", index, self.len);
 	}
+}
 
-	ar<T> to_ar() const {
-		ar<T> array;
-		array.buf = this->buf;
-		array.len = this->len;
-		return array;
-	}
+template <typename Type>
+gar<Type>::operator gar<const Type>() const {
+	return gar<const Type>(buf, len, cap);
+}
 
-	gar<T> clone() const {
-		gar<T> new_array = gar<T>::create(this->cap);
-		new_array.len = this->len;
-		std::memcpy(new_array.buf, this->buf, sizeof(T) * this->len);
-		return new_array;
-	}
+template <typename Type>
+const Type& gar<Type>::operator[] (this const auto& self, size_t index) {
+	#ifdef CTK_ARR_CHECK
+		self.bound_check(index);
+	#endif
+	return self.buf[index];
+}
 
-	void grow() {
-		this->cap *= 2;
-		this->buf = (T*)std::realloc(this->buf, sizeof(T) * this->cap);
-		if (this->buf == nullptr) {
-			CTK_PANIC("std::realloc failed (cap:%zu)", this->cap);
-		}
-	}
+template <typename Type>
+template <typename ConstType>
+std::enable_if_t<!std::is_const_v<ConstType>, ConstType&>
+gar<Type>::operator[] (this auto& self, size_t index) {
+	#ifdef CTK_ARR_CHECK
+		self.bound_check(index);
+	#endif
+	return self.buf[index];
+}
 
-	void push(T value) {
-		if (this->len == this->cap) {
-			this->grow();
-		}
-		this->buf[this->len] = value;
-		this->len += 1;
-	}
+template <typename Type>
+void gar<Type>::clear(this auto& self) {
+	self.len = 0;
+}
 
-	void push_many(const void* src_ptr, size_t count) {
-		size_t old_len = len;
-		this->len += count;
-		while (this->len >= this->cap) {
-			this->grow();
-		}
-		std::memcpy(&this->buf[old_len], src_ptr, sizeof(T) * count);
-	}
+template <typename Type>
+ar<Type> gar<Type>::to_ar(this const auto& self) {
+	return ar<Type>(self.buf, self.len);
+}
 
-	T pop() {
-		if (this->len == 0) {
-			CTK_PANIC("len is zero");
-		}
-		this->len -= 1;
-		return this->buf[this->len];
-	}
+template <typename Type>
+template <typename ConstType>
+std::enable_if_t<!std::is_const_v<ConstType>, ar<ConstType>>
+gar<Type>::to_ar(this auto& self) {
+	return ar<ConstType>(self.buf, self.len);
+}
 
-	void pop_many(size_t count) {
-		if (this->len < count) {
-			CTK_PANIC("len is zero");
-		}
-		this->len -= count;
+template <typename Type>
+gar<Type> gar<Type>::clone(this const auto& self) {
+	gar<Type> new_array;
+	new_array.create_cap(self.cap);
+	new_array.len = self.len;
+	if (self.len != 0) {
+		std::memcpy(new_array.buf, self.buf, sizeof(Type) * self.len);
 	}
+	return new_array;
+}
 
-	void join(ar<T> other) {
-		this->push_many(other.buf, other.len);
+template <typename Type>
+gar<Type> gar<Type>::clone_deep(this const auto& self) {
+	gar<Type> new_array;
+	new_array.create_cap(self.cap);
+	new_array.len = self.len;
+	for (size_t a = 0; a < self.len; ++a) {
+		new_array[a] = self[a].clone();
 	}
+	return new_array;
+}
 
-	void join(gar<T> other) {
-		this->push_many(other.buf, other.len);
+template <typename Type>
+void gar<Type>::resize(this auto& self, size_t cap) {
+	self.cap = cap;
+	self.buf = (Type*)ctk::mem_realloc(self.buf, sizeof(Type) * self.cap);
+	if (self.buf == nullptr) {
+		ctk::panic("ctk::gar::resize failed: ctk::mem_realloc failed (cap:%zu)", self.cap);
 	}
+}
 
-	void insert(size_t index, T value) {
-		if (index > this->len) {
-			CTK_PANIC("index %zu is out of bounds (len:%zu)", index, this->len);
-		}
-		if (this->len == this->cap) {
-			this->grow();
-		}
-		std::memmove(&this->buf[index + 1], &this->buf[index], sizeof(T) * (this->len - index));
-		this->buf[index] = value;
-		this->len += 1;
-	}
+template <typename Type>
+void gar<Type>::grow(this auto& self) {
+	self.resize(self.cap < 8 ? 8 : self.cap * 2);
+}
 
-	void insert_many(size_t index, const void* src_ptr, size_t count) {
-		if (count == 0) {
-			CTK_PANIC("count is zero");
-		}
-		if (index >= this->len) {
-			CTK_PANIC("index %zu is out of bounds (len:%zu)", index, this->len);
-		}
-		this->len += count;
-		while (this->len >= this->cap) {
-			this->grow();
-		}
-		std::memmove(&this->buf[index + count], &this->buf[index], sizeof(T) * (this->len - index - count));
-		std::memcpy(&this->buf[index], src_ptr, sizeof(T) * count);
+template <typename Type>
+void gar<Type>::push(this auto& self, Type value) {
+	if (self.len == self.cap) {
+		self.grow();
 	}
+	self.buf[self.len] = value;
+	self.len += 1;
+}
 
-	T remove(size_t index) {
-		if (index >= this->len) {
-			CTK_PANIC("index %zu is out of bounds (len:%zu)", index, this->len);
-		}
-		T value = this->buf[index];
-		this->len -= 1;
-		std::memmove(&this->buf[index], &this->buf[index + 1], sizeof(T) * (this->len - index));
-		return value;
+template <typename Type>
+void gar<Type>::push_many(this auto& self, const void* src_ptr, size_t count) {
+	size_t old_len = self.len;
+	self.len += count;
+	while (self.len >= self.cap) {
+		self.grow();
 	}
+	std::memcpy(&self.buf[old_len], src_ptr, sizeof(Type) * count);
+}
 
-	void remove_many(size_t index, size_t count) {
-		if (count == 0) {
-			CTK_PANIC("count is zero");
-		}
-		if (index + count > this->len) {
-			CTK_PANIC("index %zu+%zu is out of bounds (len:%zu)", index, count, this->len);
-		}
-		std::memmove(&this->buf[index], &this->buf[index + count], sizeof(T) * (this->len - index - count));
-		this->len -= count;
+template <typename Type>
+Type gar<Type>::pop(this auto& self) {
+	if (self.len == 0) {
+		ctk::panic("ctk::gar::pop failed: len is zero");
 	}
-};
+	self.len -= 1;
+	return self.buf[self.len];
+}
+
+template <typename Type>
+void gar<Type>::pop_many(this auto& self, size_t count) {
+	if (self.len < count) {
+		ctk::panic("ctk::gar::pop_many failed: len is zero");
+	}
+	self.len -= count;
+}
+
+template <typename Type>
+void gar<Type>::join(this auto& self, ar<const Type> other) {
+	self.push_many(other.buf, other.len);
+}
+
+template <typename Type>
+void gar<Type>::join(this auto& self, gar<const Type> other) {
+	self.push_many(other.buf, other.len);
+}
+
+template <typename Type>
+void gar<Type>::insert(this auto& self, size_t index, Type value) {
+	if (index > self.len) {
+		ctk::panic("ctk::gar::insert failed: index %zu is out of bounds (len:%zu)", index, self.len);
+	}
+	if (self.len == self.cap) {
+		self.grow();
+	}
+	std::memmove(&self.buf[index + 1], &self.buf[index], sizeof(Type) * (self.len - index));
+	self.buf[index] = value;
+	self.len += 1;
+}
+
+template <typename Type>
+void gar<Type>::insert_many(this auto& self, size_t index, const void* src_ptr, size_t count) {
+	if (count == 0) {
+		ctk::panic("ctk::gar::insert_many failed: count is zero");
+	}
+	if (index >= self.len) {
+		ctk::panic("ctk::gar::insert_many failed: index %zu is out of bounds (len:%zu)", index, self.len);
+	}
+	self.len += count;
+	while (self.len >= self.cap) {
+		self.grow();
+	}
+	std::memmove(&self.buf[index + count], &self.buf[index], sizeof(Type) * (self.len - index - count));
+	std::memcpy(&self.buf[index], src_ptr, sizeof(Type) * count);
+}
+
+template <typename Type>
+Type gar<Type>::remove(this auto& self, size_t index) {
+	if (index >= self.len) {
+		ctk::panic("ctk::gar::remove failed: index %zu is out of bounds (len:%zu)", index, self.len);
+	}
+	Type value = self.buf[index];
+	self.len -= 1;
+	std::memmove(&self.buf[index], &self.buf[index + 1], sizeof(Type) * (self.len - index));
+	return value;
+}
+
+template <typename Type>
+void gar<Type>::remove_many(this auto& self, size_t index, size_t count) {
+	if (count == 0) {
+		ctk::panic("ctk::gar::remove_many failed: count is zero");
+	}
+	if (index + count > self.len) {
+		ctk::panic("ctk::gar::remove_many failed: index %zu+%zu is out of bounds (len:%zu)", index, count, self.len);
+	}
+	std::memmove(&self.buf[index], &self.buf[index + count], sizeof(Type) * (self.len - index - count));
+	self.len -= count;
+}
+
+template <typename Type>
+void gar<Type>::sort_range(this auto&& self, size_t low, size_t high) {
+	self.to_ar().sort_range(low, high);
+}
+
+template <typename Type>
+void gar<Type>::sort(this auto&& self) {
+	self.to_ar().sort();
+}

@@ -1,52 +1,45 @@
-struct v2i {
-	union {
-		struct {
-			i32 x;
-			i32 y;
-		};
-		i32 data[2];
-	};
+i32 v2i::sqr_dst(v2i a, v2i b) {
+	i32 x = a.x - b.x;
+	i32 y = a.y - b.y;
+	return x * x + y * y;
+}
 
-	constexpr v2i() = default;
-	constexpr v2i(i32 _x, i32 _y): x(_x), y(_y) {}
+f32 v2i::dst(v2i a, v2i b) {
+	return std::sqrt((f32)sqr_dst(a, b));
+}
 
-	bool operator==(v2i const& other) const {
-		return this->x == other.x && this->y == other.y;
-	}
-	
-	bool operator!=(v2i const& other) const {
-		return this->x != other.x || this->y != other.y;
-	}
+v2i v2i::add(v2i a, v2i b) {
+	return v2i(a.x + b.x, a.y + b.y);
+}
 
-	constexpr v2f to_v2f() const;
-	
-	static constexpr v2i xy(i32 value) {
-		return v2i(value, value);
-	}
+v2i v2i::add_i32(v2i a, i32 b) {
+	return v2i(a.x + b, a.y + b);
+}
 
-	static i32 sqr_dst(v2i a, v2i b) {
-		i32 x = a.x - b.x;
-		i32 y = a.y - b.y;
-		return x * x + y * y;
-	}
+v2i v2i::sub(v2i a, v2i b) {
+	return v2i(a.x - b.x, a.y - b.y);
+}
 
-	static i32 dst(v2i a, v2i b) {
-		return std::sqrt(sqr_dst(a, b));
-	}
+v2i v2i::sub_i32(v2i a, i32 b) {
+	return v2i(a.x - b, a.y - b);
+}
 
-	static v2i add(v2i a, v2i b) {
-		return v2i(a.x + b.x, a.y + b.y);
-	}
+v2i v2i::mul(v2i a, v2i b) {
+	return v2i(a.x * b.x, a.y * b.y);
+}
 
-	static v2i sub(v2i a, v2i b) {
-		return v2i(a.x - b.x, a.y - b.y);
-	}
+v2i v2i::mul_i32(v2i a, i32 b) {
+	return v2i(a.x * b, a.y * b);
+}
 
-	static v2i mul(v2i a, v2i b) {
-		return v2i(a.x * b.x, a.y * b.y);
-	}
+v2i v2i::div(v2i a, v2i b) {
+	return v2i(a.x / b.x, a.y / b.y);
+}
 
-	static v2i div(v2i a, v2i b) {
-		return v2i(a.x / b.x, a.y / b.y);
-	}
-};
+v2i v2i::div_i32(v2i a, i32 b) {
+	return v2i(a.x / b, a.y / b);
+}
+
+bool v2i::cmp(v2i a, v2i b) {
+	return a.x == b.x && a.y == b.y;
+}

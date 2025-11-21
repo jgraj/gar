@@ -1,32 +1,48 @@
-struct FileSave {
-	#ifdef CTK_WIN32
-
-	#endif
-
-	#ifdef CTK_LINUX
-		int file_desc;
-
-		void create(const char* path) {
-			this->file_desc = ::creat(path, S_IRUSR | S_IWUSR);
+#ifdef CBS_WIN32
+	void FileSave::create(this auto& self, const char* path) {
+		self.file_handle = ::CreateFileA(path, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+		if (self.file_handle == INVALID_HANDLE_VALUE) {
+			ctk::panic("::CreateFile failed");
 		}
+	}
+
+	void FileSave::destroy(this auto& self) {
+		::CloseHandle(self.file_handle);
+	}
 	
-		void destroy() {
-			::close(this->file_desc);
+	template <typename Type>
+	void FileSave::save_many(this auto& self, const Type* data, size_t count) {
+		DWORD bytes_written;
+		if (!::WriteFile(self.file_handle, data, sizeof(Type) * count, &bytes_written, nullptr)) {
+			ctk::panic("::WriteFile failed");
 		}
-		
-		template <typename Type> void save_many(const Type* data, size_t count) {
-			if (::write(this->file_desc, data, sizeof(Type) * count) == -1) {
-				CTK_PANIC("::write failed");
-			}
-		}
+	}
+#endif
 
-		template <typename Type> void save(Type data) {
-			this->save_many<Type>(&data, 1);
-		}
+#ifdef CBS_LINUX
+	void FileSave::create(this auto& self, const char* path) {
+		self.file_desc = ::creat(path, S_IRUSR | S_IWUSR);
+	}
 
-		template <typename Type, typename LenType> void save_ar(ar<const Type> data) {
-			this->save<LenType>(data.len);
-			this->save_many<Type>(data.buf, data.len);
+	void FileSave::destroy(this auto& self) {
+		::close(self.file_desc);
+	}
+	
+	template <typename Type>
+	void FileSave::save_many(this auto& self, const Type* data, size_t count) {
+		if (::write(self.file_desc, data, sizeof(Type) * count) == -1) {
+			ctk::panic("::write failed");
 		}
-	#endif
-};
+	}
+#endif
+
+template <typename Type>
+void FileSave::save(this auto& self, Type data) {
+	self.template save_many<Type>(&data, 1);
+}
+
+template <typename Type, typename LenType>
+void FileSave::save_ar(this auto& self, ar<const Type> data) {
+	self.template save<LenType>(data.len);
+	self.template save_many<Type>(data.buf, data.len);
+}

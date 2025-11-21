@@ -1,68 +1,57 @@
-struct v2f {
-	union {
-		struct {
-			f32 x;
-			f32 y;
-		};
-		f32 data[2];
-	};
+f32 v2f::sqr_dst(v2f a, v2f b) {
+	f32 x = a.x - b.x;
+	f32 y = a.y - b.y;
+	return x * x + y * y;
+}
 
-	constexpr v2f() = default;
-	constexpr v2f(f32 _x, f32 _y): x(_x), y(_y) {}
+f32 v2f::dst(v2f a, v2f b) {
+	return std::sqrt(sqr_dst(a, b));
+}
 
-	bool operator==(v2f const& other) const {
-		return this->x == other.x && this->y == other.y;
-	}
-	
-	bool operator!=(v2f const& other) const {
-		return this->x != other.x || this->y != other.y;
-	}
+v2f v2f::add(v2f a, v2f b) {
+	return v2f(a.x + b.x, a.y + b.y);
+}
 
-	constexpr v2i to_v2i() const;
-	
-	v2f round() const {
-		return v2f(std::roundf(this->x), std::roundf(this->y));
-	}
+v2f v2f::add_f32(v2f a, f32 b) {
+	return v2f(a.x + b, a.y + b);
+}
 
-	v2f ceil() const {
-		return v2f(std::ceil(this->x), std::ceil(this->y));
-	}
+v2f v2f::sub(v2f a, v2f b) {
+	return v2f(a.x - b.x, a.y - b.y);
+}
 
-	static constexpr v2f xy(f32 value) {
-		return v2f(value, value);
-	}
+v2f v2f::sub_f32(v2f a, f32 b) {
+	return v2f(a.x - b, a.y - b);
+}
 
-	static f32 sqr_dst(v2f a, v2f b) {
-		f32 x = a.x - b.x;
-		f32 y = a.y - b.y;
-		return x * x + y * y;
-	}
+v2f v2f::mul(v2f a, v2f b) {
+	return v2f(a.x * b.x, a.y * b.y);
+}
 
-	static f32 dst(v2f a, v2f b) {
-		return std::sqrt(sqr_dst(a, b));
-	}
+v2f v2f::mul_f32(v2f a, f32 b) {
+	return v2f(a.x * b, a.y * b);
+}
 
-	static v2f add(v2f a, v2f b) {
-		return v2f(a.x + b.x, a.y + b.y);
-	}
+v2f v2f::div(v2f a, v2f b) {
+	return v2f(a.x / b.x, a.y / b.y);
+}
 
-	static v2f sub(v2f a, v2f b) {
-		return v2f(a.x - b.x, a.y - b.y);
-	}
+v2f v2f::div_f32(v2f a, f32 b) {
+	return v2f(a.x / b, a.y / b);
+}
 
-	static v2f mul(v2f a, v2f b) {
-		return v2f(a.x * b.x, a.y * b.y);
-	}
+bool v2f::cmp(v2f a, v2f b, f32 epsilon) {
+	return f32_cmp(a.x, b.x, epsilon) && f32_cmp(a.y, b.y, epsilon);
+}
 
-	static v2f mul_f32(v2f a, f32 b) {
-		return v2f(a.x * b, a.y * b);
-	}
+v2f v2f::lerp(v2f a, v2f b, f64 t) {
+	return v2f(f32_lerp(a.x, b.x, t), f32_lerp(a.y, b.y, t));
+}
 
-	static v2f div(v2f a, v2f b) {
-		return v2f(a.x / b.x, a.y / b.y);
-	}
+v2f v2f::smooth_step(v2f a, v2f b, f64 t, f64 dt) {
+	return v2f(f32_smooth_step(a.x, b.x, t, dt), f32_smooth_step(a.y, b.y, t, dt));
+}
 
-	static v2f div_f32(v2f a, f32 b) {
-		return v2f(a.x / b, a.y / b);
-	}
-};
+v2f v2f::smooth_damp(v2f a, v2f b, f64 t, f64 dt) {
+	return v2f(f32_smooth_damp(a.x, b.x, t, dt), f32_smooth_damp(a.y, b.y, t, dt));
+}
